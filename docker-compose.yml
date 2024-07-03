@@ -1,0 +1,78 @@
+version: '3.9'
+
+services:
+  mssql:
+    container_name: MsSqlServer2022
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: always
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Aa123456789*-+"
+    ports:
+      - 1433:1433
+    network_mode: bridge
+
+  serilogseq:
+    container_name: SerilogSeq
+    image: datalust/seq:latest
+    restart: always
+    environment:
+      ACCEPT_EULA: "Y"
+    ports:
+      - 5341:80
+    network_mode: bridge
+    depends_on:
+      - mssql
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: RabbitMQ
+    ports:
+        - 5672:5672
+        - 15672:15672
+    environment:
+        RABBITMQ_ERLANG_COOKIE: "SWQOKODSQALRPCLNMEQG"
+        RABBITMQ_DEFAULT_USER: "rabbitmq"
+        RABBITMQ_DEFAULT_PASS: "Aa123456789*-+"
+        RABBITMQ_DEFAULT_VHOST: "/"
+    network_mode: bridge
+    restart: always
+
+
+  BorusanWebApi:
+    image: ${DOCKER_REGISTRY-}borusanwebapi
+    container_name: "BorusanWebApi"
+    restart: "always"
+    ports:
+      - "4001:8080"
+    build:
+      context: .
+      dockerfile: src/Backend/WebAPI/Web.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTPS_PORTS=8081
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=1234
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/app/ssl/aspnetapp.pfx
+
+      - ConnectionStrings__SqlServerConnection=Server=host.docker.internal,1433;Database=BaseAppApiDb;User=sa;Password=Aa123456789*-+;TrustServerCertificate=True
+      - ConnectionStrings__CapLogSqlServerConnection=Server=host.docker.internal,1433;Database=BaseAppDbCapLog;User=sa;Password=Aa123456789*-+;TrustServerCertificate=True
+      - ConnectionStrings__SeriLogConnection=Server=host.docker.internal,1433;Database=BaseAppDbNlogDb;User=sa;Password=Aa123456789*-+;TrustServerCertificate=True
+
+      - RabbitMQ__Host=host.docker.internal
+      - RabbitMQ__Username=rabbitmq
+      - RabbitMQ__Password=Aa123456789*-+
+      - RabbitMQ__Port=5672
+
+      - SerilogSeqUrl=http://seq:5341/
+      - Serilog__MinimumLevel__Default=Warning
+
+    volumes:
+      - ./src/Backend/WebAPI/Web.API/ssl:/app/ssl
+    depends_on:
+      - mssql
+      - rabbitmq
+    network_mode: bridge
+
+volumes:
+  keycloak_data_cert:

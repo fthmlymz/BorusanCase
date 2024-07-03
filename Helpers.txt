@@ -1,0 +1,9 @@
+------------------------------------ Application Ports ------------------------------------
+BorusanWebApi.API      : http://localhost:4001;
+------------------------------------ Application Ports ------------------------------------
+
+------------------------------------ Migrations - Persistence Layer ------------------------------------
+Migrate: dotnet ef migrations add InitialCreate --context ApplicationDbContext
+Update : dotnet ef database update --context ApplicationDbContext
+Remove : dotnet ef migrations remove --force --context ApplicationDbContext
+------------------------------------ Migrations - Persistence Layer ------------------------------------
